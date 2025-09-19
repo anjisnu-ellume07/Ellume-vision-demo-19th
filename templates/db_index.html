@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Anomaly Detection - Database Analysis</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 0;
+            margin-bottom: 40px;
+        }
+        .feature-card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .date-checkbox-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }
+        .date-checkbox {
+            margin: 5px 0;
+        }
+        .auto-analysis-info {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-warning { background-color: #ffc107; }
+        .status-danger { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-solar-panel me-2"></i>
+                Ellume Vision
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('regenerate') }}">
+                            <i class="fas fa-sync-alt me-1"></i>Regenerate
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('list_results') }}">
+                            <i class="fas fa-chart-line me-1"></i>Results
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="fas fa-brain me-3"></i>
+                Solar Anomaly Detection System
+            </h1>
+            <p class="lead mb-4">
+                Advanced AI-powered analysis for solar inverter performance monitoring
+            </p>
+            <p class="mb-0">
+                <i class="fas fa-database me-2"></i>
+                Direct database integration • Automated daily analysis • Custom date ranges
+            </p>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{{ 'exclamation-triangle' if category == 'error' else 'info-circle' }} me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Auto Analysis Status -->
+        <div class="auto-analysis-info">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4><i class="fas fa-robot me-2"></i>Automatic Daily Analysis</h4>
+                    <p class="mb-0">System automatically processes previous day's data at 8:00 AM daily for all plants</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{{ url_for('trigger_auto_analysis') }}" class="btn btn-light">
+                        <i class="fas fa-play me-1"></i>Trigger Manual Run
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Analysis Form -->
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card feature-card">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-search me-2"></i>
+                            Custom Analysis
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('analyze_db') }}" id="analysisForm">
+                            {{ form.hidden_tag() }}
+                            
+                            <!-- Plant Selection -->
+                            <div class="mb-4">
+                                {{ form.plant_id.label(class="form-label fw-bold") }}
+                                {{ form.plant_id(class="form-select", id="plantSelect") }}
+                                <div class="form-text">Select the solar plant to analyze</div>
+                            </div>
+
+                            <!-- Date Selection -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Select Analysis Dates</label>
+                                <div class="date-checkbox-container" id="dateContainer">
+                                    <div class="text-muted text-center">
+                                        <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                                        <p>Select a plant first to see available dates</p>
+                                    </div>
+                                </div>
+                                <div class="form-text">Choose one or more dates to analyze (multiple days will be combined)</div>
+                                
+                                <!-- Quick date selection buttons -->
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="selectLastNDays(1)">
+                                        Yesterday
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="selectLastNDays(7)">
+                                        Last 7 Days
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="selectLastNDays(30)">
+                                        Last 30 Days
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllDates()">
+                                        Clear All
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Advanced Settings -->
+                            <div class="accordion mb-4" id="advancedSettings">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#advancedPanel">
+                                            <i class="fas fa-cogs me-2"></i>Advanced Settings
+                                        </button>
+                                    </h2>
+                                    <div id="advancedPanel" class="accordion-collapse collapse" data-bs-parent="#advancedSettings">
+                                        <div class="accordion-body">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    {{ form.contamination.label(class="form-label") }}
+                                                    {{ form.contamination(class="form-control", step="0.01", min="0.01", max="0.5") }}
+                                                    <div class="form-text">Expected proportion of anomalies (0.01-0.5)</div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    {{ form.n_explanations.label(class="form-label") }}
+                                                    {{ form.n_explanations(class="form-control", min="1", max="20") }}
+                                                    <div class="form-text">Number of detailed explanations to generate</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="text-center">
+                                {{ form.submit(class="btn btn-primary btn-lg px-5") }}
+                                <div class="form-text mt-2">Analysis typically takes 2-5 minutes depending on data size</div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature Cards -->
+        <div class="row mt-5">
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-database fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Direct Database Integration</h5>
+                        <p class="card-text">Seamlessly connects to your solar data database, eliminating manual file uploads.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-clock fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Automated Processing</h5>
+                        <p class="card-text">Daily automatic analysis ensures you never miss critical anomalies in your solar systems.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                        <h5 class="card-title">Advanced Analytics</h5>
+                        <p class="card-text">AI-powered anomaly detection with detailed explanations and severity assessments.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">&copy; 2024 Ellume Vision - Solar Anomaly Detection System</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let availableDates = [];
+        
+        // Load dates when plant is selected
+        document.getElementById('plantSelect').addEventListener('change', function() {
+            const plantId = this.value;
+            const dateContainer = document.getElementById('dateContainer');
+            
+            if (!plantId) {
+                dateContainer.innerHTML = `
+                    <div class="text-muted text-center">
+                        <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                        <p>Select a plant first to see available dates</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show loading
+            dateContainer.innerHTML = `
+                <div class="text-center">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                    <p>Loading available dates...</p>
+                </div>
+            `;
+            
+            // Fetch dates for selected plant
+            fetch(`/get_dates/${plantId}`)
+                .then(response => response.json())
+                .then(data => {
+                    availableDates = data.dates;
+                    renderDateCheckboxes(data.dates);
+                })
+                .catch(error => {
+                    console.error('Error fetching dates:', error);
+                    dateContainer.innerHTML = `
+                        <div class="text-danger text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                            <p>Error loading dates. Please try again.</p>
+                        </div>
+                    `;
+                });
+        });
+        
+        function renderDateCheckboxes(dates) {
+            const container = document.getElementById('dateContainer');
+            
+            if (dates.length === 0) {
+                container.innerHTML = `
+                    <div class="text-warning text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <p>No data available for this plant</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="row">';
+            dates.forEach((date, index) => {
+                const dateObj = new Date(date);
+                const formattedDate = dateObj.toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                html += `
+                    <div class="col-md-6 date-checkbox">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="${date}" 
+                                   id="date_${index}" name="analysis_dates">
+                            <label class="form-check-label" for="date_${index}">
+                                ${formattedDate}
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            container.innerHTML = html;
+        }
+        
+        function selectLastNDays(n) {
+            // Clear all first
+            clearAllDates();
+            
+            // Select last n dates
+            const checkboxes = document.querySelectorAll('input[name="analysis_dates"]');
+            for (let i = 0; i < Math.min(n, checkboxes.length); i++) {
+                checkboxes[i].checked = true;
+            }
+        }
+        
+        function clearAllDates() {
+            const checkboxes = document.querySelectorAll('input[name="analysis_dates"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        }
+        
+        // Form validation
+        document.getElementById('analysisForm').addEventListener('submit', function(e) {
+            const plantSelect = document.getElementById('plantSelect');
+            const dateCheckboxes = document.querySelectorAll('input[name="analysis_dates"]:checked');
+            
+            if (!plantSelect.value) {
+                e.preventDefault();
+                alert('Please select a plant for analysis.');
+                return;
+            }
+            
+            if (dateCheckboxes.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one date for analysis.');
+                return;
+            }
+            
+            // Show loading state
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+            submitBtn.disabled = true;
+            
+            // Re-enable after 10 seconds in case of error
+            setTimeout(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }, 10000);
+        });
+    </script>
+</body>
+</html>

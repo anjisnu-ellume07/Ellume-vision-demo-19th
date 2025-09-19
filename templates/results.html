@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Anomaly Detection Results</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #375a7f;
+            --secondary: #42464a;
+            --accent: #f1b70e;
+            --dark: #0e0e0e;
+            --dark-bg: #10151b;
+            --positive: #7db565;
+            --negative: #f44336;
+            --info: #b0dff5;
+            --warning: #e6e165;
+            --boxes: #1e2626;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--dark-bg);
+            color: #ffffff;
+            line-height: 1.6;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            padding: 25px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h1 i {
+            font-size: 1.8rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .card {
+            background-color: var(--boxes);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            padding: 28px;
+            margin-bottom: 24px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(241, 183, 14, 0.3);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+            padding: 24px;
+            border-radius: 12px;
+            background: rgba(55, 90, 127, 0.2);
+            border: 1px solid rgba(55, 90, 127, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .summary-item:hover {
+            background: rgba(55, 90, 127, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .summary-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 15px 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .summary-label {
+            font-size: 1rem;
+            color: #b8b8b8;
+            font-weight: 500;
+        }
+
+        .inverter-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .inverter-btn {
+            padding: 14px 28px;
+            background-color: var(--secondary);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffffff;
+        }
+
+        .inverter-btn:hover {
+            background-color: rgba(55, 90, 127, 0.8);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .inverter-btn.active {
+            background-color: var(--accent);
+            color: var(--dark);
+            border-color: var(--accent);
+            box-shadow: 0 4px 15px rgba(241, 183, 14, 0.3);
+        }
+
+        .inverter-btn i {
+            font-size: 1.2rem;
+        }
+
+        .inverter-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .inverter-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .plot-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .plot-item {
+            background: rgba(30, 38, 38, 0.8);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .plot-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .plot-item:hover img {
+            transform: scale(1.02);
+        }
+
+        .plot-title {
+            padding: 16px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .severity-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .gauge-item {
+            text-align: center;
+            padding: 20px;
+            background: rgba(30, 38, 38, 0.6);
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gauge-item:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            transform: translateY(-3px);
+        }
+
+        .gauge-date {
+            font-weight: 600;
+            color: var(--info);
+            margin-top: 12px;
+            font-size: 1.1rem;
+        }
+
+        .daily-summary {
+            padding: 24px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent);
+            background: rgba(30, 38, 38, 0.8);
+            border-radius: 0 12px 12px 0;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(241, 183, 14, 0.3);
+            border-left: 4px solid var(--accent);
+        }
+
+        .daily-summary:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            transform: translateX(5px);
+            background: rgba(30, 38, 38, 0.9);
+        }
+
+        .daily-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .daily-date {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .anomaly-count {
+            background: var(--negative);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+        }
+
+        .summary-content {
+            color: #e0e0e0;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .summary-content h4 {
+            color: var(--accent);
+            margin: 20px 0 12px 0;
+            font-size: 1.2rem;
+        }
+
+        .summary-content strong {
+            color: var(--info);
+        }
+
+        .summary-content ul {
+            margin: 12px 0;
+            padding-left: 0;
+        }
+
+        .summary-content li {
+            list-style: none;
+            margin: 12px 0;
+            padding: 12px 0 12px 20px;
+            border-left: 2px solid rgba(241, 183, 14, 0.3);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .summary-content li strong {
+            color: var(--accent);
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .metrics {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .metric {
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 16px;
+            border-radius: 10px;
+            min-width: 140px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .metric:hover {
+            background: rgba(0, 0, 0, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: #b8b8b8;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 20px 0;
+            background: var(--boxes);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        th, td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background-color: rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(55, 90, 127, 0.2);
+        }
+
+        .actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            border-radius: 25px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4a6fa5;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(55, 90, 127, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #525863;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(66, 70, 74, 0.4);
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+            color: #b8b8b8;
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .plot-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .inverter-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .metrics {
+                flex-direction: column;
+                gap: 12px;
+            }
+        }
+
+        /* Severity Level Styles */
+        .severity-critical {
+            color: var(--negative) !important;
+        }
+
+        .severity-high {
+            color: #ff9800 !important;
+        }
+
+        .severity-medium {
+            color: var(--warning) !important;
+        }
+
+        .severity-low {
+            color: var(--positive) !important;
+        }
+
+        /* Enhanced text formatting for technical content */
+        .summary-content p {
+            margin: 12px 0;
+            text-align: justify;
+        }
+
+        .summary-content .section-title {
+            color: var(--accent);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 20px 0 10px 0;
+            border-bottom: 1px solid rgba(241, 183, 14, 0.3);
+            padding-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1><i class="fas fa-solar-panel"></i> Ellume Vision Results</h1>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-chart-pie"></i> Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <i class="fas fa-bolt fa-2x" style="color: var(--accent);"></i>
+                    <div class="summary-value">{{ results.total_samples }}</div>
+                    <div class="summary-label">Total Samples</div>
+                </div>
+                <div class="summary-item">
+                    <i class="fas fa-exclamation-triangle fa-2x" style="color: var(--negative);"></i>
+                    <div class="summary-value">{{ results.anomaly_count }}</div>
+                    <div class="summary-label">Anomalies Detected</div>
+                </div>
+                <div class="summary-item">
+                    <i class="fas fa-percent fa-2x" style="color: var(--warning);"></i>
+                    <div class="summary-value">{{ "%.2f"|format(results.anomaly_percentage) }}%</div>
+                    <div class="summary-label">Anomaly Percentage</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-solar-panel"></i> Inverter Analysis</h2>
+            
+            <div class="inverter-selector" id="inverterSelector">
+                <!-- All Inverters Button -->
+                <div class="inverter-btn active" data-inverter="all">
+                    <i class="fas fa-globe"></i> All Inverters
+                </div>
+                
+                {% if results.severity_gauges %}
+                    {% for device_id in results.severity_gauges.keys() %}
+                    <div class="inverter-btn" data-inverter="{{ device_id }}">
+                        <i class="fas fa-solar-panel"></i> {{ device_id }}
+                    </div>
+                    {% endfor %}
+                {% elif results.daily_summaries %}
+                    {% for device_id in results.daily_summaries.keys() %}
+                    <div class="inverter-btn" data-inverter="{{ device_id }}">
+                        <i class="fas fa-solar-panel"></i> {{ device_id }}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="inverter-btn" data-inverter="inverter1">
+                        <i class="fas fa-solar-panel"></i> Inverter 1
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- All Inverters View -->
+            <div class="inverter-content active" id="all-inverters">
+                <h3 class="card-title"><i class="fas fa-chart-line"></i> Visualizations</h3>
+                <div class="plot-container">
+                    {% for plot_name, plot_data in results.plot_data.items() %}
+                    <div class="plot-item">
+                        <div class="plot-title">{{ plot_name }}</div>
+                        <img src="data:image/png;base64,{{ plot_data }}" alt="{{ plot_name }}">
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Individual Inverter Views -->
+            {% if results.severity_gauges %}
+                {% for device_id, dates in results.severity_gauges.items() %}
+                <div class="inverter-content" id="{{ device_id }}-content">
+                    <h3 class="card-title"><i class="fas fa-solar-panel"></i> {{ device_id }} Analysis</h3>
+                    
+                    {% if results.daily_summaries and device_id in results.daily_summaries %}
+                    <h4 class="card-title"><i class="fas fa-calendar-day"></i> Daily Executive Summaries</h4>
+                        {% for date_str, summary_data in results.daily_summaries[device_id].items() %}
+                        <div class="daily-summary">
+                            <div class="daily-header">
+                                <div class="daily-date">{{ date_str }}</div>
+                                <div class="anomaly-count">{{ summary_data.anomaly_count }} anomalies</div>
+                            </div>
+                            <div class="summary-content">
+                                {{ summary_data.summary|safe }}
+                            </div>
+                            <div class="metrics">
+                                <div class="metric">
+                                    <span class="metric-label">Average Severity</span>
+                                    <span class="metric-value">{{ summary_data.avg_severity }}%</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Peak Time</span>
+                                    <span class="metric-value">{{ summary_data.peak_time }}</span>
+                                </div>
+                                <div class="metric">
+                                    <span class="metric-label">Trend</span>
+                                    <span class="metric-value">{{ summary_data.trend }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% elif results.daily_summaries %}
+                {% for device_id, dates in results.daily_summaries.items() %}
+                <div class="inverter-content" id="{{ device_id }}-content">
+                    <h3 class="card-title"><i class="fas fa-solar-panel"></i> {{ device_id }} Analysis</h3>
+                    
+                    <h4 class="card-title"><i class="fas fa-calendar-day"></i> Daily Executive Summaries</h4>
+                    {% for date_str, summary_data in dates.items() %}
+                    <div class="daily-summary">
+                        <div class="daily-header">
+                            <div class="daily-date">{{ date_str }}</div>
+                            <div class="anomaly-count">{{ summary_data.anomaly_count }} anomalies</div>
+                        </div>
+                        <div class="summary-content">
+                            {{ summary_data.summary|safe }}
+                        </div>
+                        <div class="metrics">
+                            <div class="metric">
+                                <span class="metric-label">Average Severity</span>
+                                <span class="metric-value">{{ summary_data.avg_severity }}%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Peak Time</span>
+                                <span class="metric-value">{{ summary_data.peak_time }}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Trend</span>
+                                <span class="metric-value">{{ summary_data.trend }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="actions">
+            <a href="{{ url_for('download_results') }}" class="btn btn-primary">
+                <i class="fas fa-download"></i> Download Results as CSV
+            </a>
+            <a href="/{{ results.path }}" class="btn btn-primary">
+                <i class="fas fa-link"></i> Permanent Link
+            </a>
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">
+                <i class="fas fa-redo"></i> Analyze Another File
+            </a>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Solar Anomaly Detection System © 2023 | Powered by Advanced Analytics</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inverter toggle functionality
+            const inverterButtons = document.querySelectorAll('.inverter-btn');
+            const inverterContents = document.querySelectorAll('.inverter-content');
+            
+            inverterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const inverterId = this.getAttribute('data-inverter');
+                    
+                    // Update active button
+                    inverterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show relevant content
+                    inverterContents.forEach(content => {
+                        content.classList.remove('active');
+                        
+                        if (inverterId === 'all') {
+                            document.getElementById('all-inverters').classList.add('active');
+                        } else if (content.id === `${inverterId}-content`) {
+                            content.classList.add('active');
+                        }
+                    });
+                });
+            });
+
+            // Animate elements on scroll
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = 1;
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            // Observe elements for animation
+            document.querySelectorAll('.card, .summary-item, .plot-item, .gauge-item, .daily-summary').forEach(el => {
+                el.style.opacity = 0;
+                el.style.transform = 'translateY(20px)';
+                el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                observer.observe(el);
+            });
+
+            // Format technical content
+            document.querySelectorAll('.summary-content').forEach(content => {
+                const html = content.innerHTML;
+                
+                // Format numbered sections as section titles
+                const formattedHtml = html
+                    .replace(/(\d+\.\s+[^:]+:)/g, '<div class="section-title">$1</div>')
+                    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                
+                content.innerHTML = formattedHtml;
+            });
+        });
+    </script>
+</body>
+</html>
