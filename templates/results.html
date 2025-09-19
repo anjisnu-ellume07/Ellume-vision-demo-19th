@@ -640,18 +640,6 @@
                 {% endfor %}
             {% endif %}
         </div>
-
-        <div class="actions">
-            <a href="{{ url_for('download_results') }}" class="btn btn-primary">
-                <i class="fas fa-download"></i> Download Results as CSV
-            </a>
-            <a href="/{{ results.path }}" class="btn btn-primary">
-                <i class="fas fa-link"></i> Permanent Link
-            </a>
-            <a href="{{ url_for('index') }}" class="btn btn-secondary">
-                <i class="fas fa-redo"></i> Analyze Another File
-            </a>
-        </div>
     </div>
 
 
@@ -722,3 +710,4 @@
     </script>
 </body>
 </html>
+
